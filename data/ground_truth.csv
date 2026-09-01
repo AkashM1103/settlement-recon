@@ -1,0 +1,76 @@
+settlement_id,true_order_id,case,note
+STL5501,ORD10001,clean,exact payment_id match
+STL5502,ORD10002,clean,exact payment_id match
+STL5503,ORD10003,clean,exact payment_id match
+STL5504,ORD10004,clean,exact payment_id match
+STL5505,ORD10005,clean,exact payment_id match
+STL5506,ORD10006,clean,exact payment_id match
+STL5507,ORD10007,clean,exact payment_id match
+STL5508,ORD10008,clean,exact payment_id match
+STL5509,ORD10009,clean,exact payment_id match
+STL5510,ORD10010,clean,exact payment_id match
+STL5511,ORD10011,clean,exact payment_id match
+STL5512,ORD10012,clean,exact payment_id match
+STL5513,ORD10013,clean,exact payment_id match
+STL5514,ORD10014,clean,exact payment_id match
+STL5515,ORD10015,clean,exact payment_id match
+STL5516,ORD10016,clean,exact payment_id match
+STL5517,ORD10017,clean,exact payment_id match
+STL5518,ORD10018,clean,exact payment_id match
+STL5519,ORD10019,clean,exact payment_id match
+STL5520,ORD10020,clean,exact payment_id match
+STL5521,ORD10021,clean,exact payment_id match
+STL5522,ORD10022,clean,exact payment_id match
+STL5523,ORD10023,clean,exact payment_id match
+STL5524,ORD10024,clean,exact payment_id match
+STL5525,ORD10025,clean,exact payment_id match
+STL5526,ORD10026,clean,exact payment_id match
+STL5527,ORD10027,clean,exact payment_id match
+STL5528,ORD10028,clean,exact payment_id match
+STL5529,ORD10029,clean,exact payment_id match
+STL5530,ORD10030,clean,exact payment_id match
+STL5531,ORD10031,clean,exact payment_id match
+STL5532,ORD10032,clean,exact payment_id match
+STL5533,ORD10033,clean,exact payment_id match
+STL5534,ORD10034,clean,exact payment_id match
+STL5535,ORD10035,clean,exact payment_id match
+STL5536,ORD10036,clean,exact payment_id match
+STL5537,ORD10037,clean,exact payment_id match
+STL5538,ORD10038,clean,exact payment_id match
+STL5539,ORD10039,clean,exact payment_id match
+STL5540,ORD10040,clean,exact payment_id match
+STL5541,ORD10041,clean,exact payment_id match
+STL5542,ORD10042,clean,exact payment_id match
+STL5543,ORD10043,clean,exact payment_id match
+STL5544,ORD10044,clean,exact payment_id match
+STL5545,ORD10045,clean,exact payment_id match
+STL5546,ORD10046,clean,exact payment_id match
+STL5547,ORD10047,clean,exact payment_id match
+STL5548,ORD10048,clean,exact payment_id match
+STL5549,ORD10049,clean,exact payment_id match
+STL5550,ORD10050,clean,exact payment_id match
+STL5551,ORD10051,clean,exact payment_id match
+STL5552,ORD10052,clean,exact payment_id match
+STL5553,ORD10053,clean,exact payment_id match
+STL5554,ORD10054,clean,exact payment_id match
+STL5555,ORD10055,clean,exact payment_id match
+STL5556,ORD10056,clean,exact payment_id match
+STL5557,ORD10057,clean,exact payment_id match
+STL5558,ORD10058,clean,exact payment_id match
+STL5559,ORD10059,clean,exact payment_id match
+STL5560,ORD10060,clean,exact payment_id match
+STL5561,ORD10061,orphan_settlement,payment_id missing; recoverable via amount+date
+STL5562,ORD10062,orphan_settlement,payment_id missing; recoverable via amount+date
+STL5563,ORD10063,orphan_settlement,payment_id missing; recoverable via amount+date
+STL5564,ORD10064,amount_mismatch,partial refund of 3326.75 not reflected in order amount
+STL5565,ORD10065,amount_mismatch,partial refund of 5753.48 not reflected in order amount
+STL5566,ORD10066,amount_mismatch,partial refund of 5526.93 not reflected in order amount
+STL5567,ORD10067,clean,first settlement for payment
+STL5568,ORD10067,duplicate_settlement,same payment_id settled twice
+STL5569,ORD10068,clean,first settlement for payment
+STL5570,ORD10068,duplicate_settlement,same payment_id settled twice
+STL5571,,no_order,"test/dummy transaction, no merchant order exists"
+STL5572,,no_order,"test/dummy transaction, no merchant order exists"
+STL5573,ORD10071,date_drift,"settled >7 days after order; delayed, not broken"
+STL5574,ORD10072,date_drift,"settled >7 days after order; delayed, not broken"
+STL5575,ORD10073,date_drift,"settled >7 days after order; delayed, not broken"
