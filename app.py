@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from recon import MatchConfig, SAMPLE_QUESTIONS, load_batch, load_frames, reconcile  # noqa: E402
-from recon.llm import ClaudeClient  # noqa: E402
+from recon.llm import LLMClient  # noqa: E402
 
 DATA_DIR = ROOT / "data"
 
@@ -46,11 +46,11 @@ with st.sidebar:
     date_window = st.slider("Date window (± days)", 1, 10, 3)
     accept_conf = st.slider("Accept confidence", 0.5, 0.99, 0.80, 0.01)
 
-    llm_ready = ClaudeClient().available
-    use_llm = st.toggle("Use Claude for reasoning + Q&A", value=llm_ready, disabled=not llm_ready)
+    llm_ready = LLMClient().available
+    use_llm = st.toggle("Use the LLM for reasoning + Q&A", value=llm_ready, disabled=not llm_ready)
     st.caption(
-        "ANTHROPIC_API_KEY detected." if llm_ready
-        else "No ANTHROPIC_API_KEY - running the deterministic reasoner."
+        "GROQ_API_KEY detected." if llm_ready
+        else "No GROQ_API_KEY - running the deterministic reasoner."
     )
     run = st.button("Run reconciliation", type="primary", use_container_width=True)
 

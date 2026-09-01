@@ -25,8 +25,8 @@ python main.py --demo-questions   # CLI: full report + sample Q&A, writes out/*.
 Sample data is committed (`data/orders.csv`, `data/settlements.csv`, `data/ground_truth.csv`), so a
 fresh clone runs end-to-end with no setup and no API key.
 
-**Optional LLM layer:** copy `.env.example` to `.env` and set `ANTHROPIC_API_KEY` to have Claude do
-the fuzzy-match reasoning and phrase the Q&A answers. Without a key the same interfaces are served
+**Optional LLM layer:** copy `.env.example` to `.env` and set `GROQ_API_KEY` to have the LLM
+(`openai/gpt-oss-120b` on Groq by default) do the fuzzy-match reasoning and phrase the Q&A answers. Without a key the same interfaces are served
 by a deterministic scorer, so nothing in the demo breaks — the report shows which reasoner ran.
 
 Regenerate the batch with different noise: `python scripts/generate_data.py --seed 42`.
@@ -36,7 +36,7 @@ Regenerate the batch with different noise: `python scripts/generate_data.py --se
 ```
  orders.csv ┐
             ├─> Ingestion ─> Normalizer ─> Matcher ──────────────> Reasoner ─┐
-settlements ┘   (load +      (types,       pass 1: exact          (Claude:   │
+settlements ┘   (load +      (types,       pass 1: exact          (LLM:      │
                  schema       dates,        payment_id             match /   │
                  checks)      currency,     pass 2: candidate      no_match / │
                               derived       retrieval by           uncertain  │
@@ -54,9 +54,9 @@ settlements ┘   (load +      (types,       pass 1: exact          (Claude:   �
 | Ingestion | `src/recon/ingest.py` | Load CSVs, verify required columns, sanity counts |
 | Normalizer | `src/recon/normalize.py` | Column aliases, `₹`/comma stripping, date parsing, `net = gross - fees - tax` check |
 | Matcher | `src/recon/match.py` | Pass 1 exact `payment_id`; pass 2 candidate retrieval (amount ±5%, date window, top-3); pass 3 reasoner verdict; exception classification |
-| Reasoner | `src/recon/reasoner.py` | Claude verdict (`match`/`no_match`/`uncertain` + confidence + one-line reason), deterministic fallback |
+| Reasoner | `src/recon/reasoner.py` | LLM verdict (`match`/`no_match`/`uncertain` + confidence + one-line reason), deterministic fallback |
 | Reporter | `src/recon/report.py` | Match rate, false-match rate vs ground truth, exception breakdown, money totals, latency |
-| Q&A | `src/recon/qa.py` | Retrieve relevant reconciled records -> pandas aggregates -> Claude phrases the answer, always citing record IDs |
+| Q&A | `src/recon/qa.py` | Retrieve relevant reconciled records -> pandas aggregates -> LLM phrases the answer, always citing record IDs |
 | UI | `app.py`, `main.py` | Streamlit app and CLI |
 
 Retrieval note: exact `payment_id` matches need no similarity search at all, so the retrieval layer

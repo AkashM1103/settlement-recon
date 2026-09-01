@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 
 import pandas as pd
 
-from .llm import ClaudeClient
+from .llm import LLMClient
 from .match import MATCHED, MatchOutcome
 from .report import Metrics, exception_breakdown, financial_summary
 
@@ -22,7 +22,8 @@ SYSTEM_PROMPT = (
     "You are a settlement reconciliation analyst answering questions about ONE batch. "
     "Answer only from the EVIDENCE block; never invent numbers. Amounts are INR. "
     "Be concise (1-3 sentences), quote exact figures, and end with the record IDs you "
-    "relied on. If the evidence does not contain the answer, say so plainly."
+    "relied on, written plainly (e.g. 'Records: STL5571, STL5572') with no bracketed "
+    "source markers. If the evidence does not contain the answer, say so plainly."
 )
 
 EXCEPTION_WORDS = {
@@ -53,12 +54,12 @@ class Answer:
 
 
 class ReconQA:
-    def __init__(self, outcome: MatchOutcome, metrics: Metrics, client: ClaudeClient | None = None,
+    def __init__(self, outcome: MatchOutcome, metrics: Metrics, client: LLMClient | None = None,
                  max_records: int = 25) -> None:
         self.outcome = outcome
         self.metrics = metrics
         self.matches = outcome.matches
-        self.client = client or ClaudeClient()
+        self.client = client or LLMClient()
         self.max_records = max_records
 
     # ---------------- retrieval ------------------------------------------

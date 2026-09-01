@@ -11,7 +11,7 @@ import json
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-from .llm import ClaudeClient
+from .llm import LLMClient
 
 SYSTEM_PROMPT = (
     "You are a payments reconciliation analyst. Given one Razorpay settlement and a "
@@ -82,12 +82,12 @@ class HeuristicReasoner:
 
 
 class LLMReasoner:
-    """Claude-backed reasoner; falls back per-call if the API errors."""
+    """Groq-backed reasoner; falls back per-call if the API errors."""
 
     name = "llm"
 
-    def __init__(self, client: ClaudeClient | None = None) -> None:
-        self.client = client or ClaudeClient()
+    def __init__(self, client: LLMClient | None = None) -> None:
+        self.client = client or LLMClient()
         self.fallback = HeuristicReasoner()
 
     @property
