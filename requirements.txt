@@ -1,0 +1,6 @@
+pandas==2.3.3
+streamlit==1.62.0
+anthropic==1.2.0
+python-dotenv==1.2.3
+Faker==40.37.0
+pytest==9.1.1
