@@ -10,6 +10,8 @@ Not-100%-matching is the point: the sample batch deliberately contains orphan se
 settlements, partial-refund amount mismatches, dummy transactions and delayed payouts, and the
 report separates "broken" from "merely delayed".
 
+Live Demo Link: https://settlement-recon-jtch7w7iyykh3g6pffhxnv.streamlit.app/
+
 ## Quickstart (under 2 minutes)
 
 ```bash
