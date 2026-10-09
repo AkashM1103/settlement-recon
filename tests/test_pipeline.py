@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
 
-from recon import MatchConfig, load_batch, reconcile  # noqa: E402
+from recon import MatchConfig, load_batch, load_frames, reconcile  # noqa: E402
 from recon.normalize import normalize_settlements  # noqa: E402
 from recon.reasoner import HeuristicReasoner  # noqa: E402
 
@@ -72,3 +72,55 @@ def test_qa_answers_are_grounded_and_cited(result):
     assert orphans and orphans <= set(answer.cited_records)
     tax = qa.ask("What's the total tax deducted this batch?")
     assert f"{result.money['tax']:,.2f}" in tax.answer
+
+
+def test_duplicate_order_payment_ids_are_rejected():
+    orders = pd.read_csv(DATA / "orders.csv", dtype=str, keep_default_na=False)
+    settlements = pd.read_csv(DATA / "settlements.csv", dtype=str, keep_default_na=False)
+    orders.loc[1, "razorpay_payment_id"] = orders.loc[0, "razorpay_payment_id"]
+
+    with pytest.raises(ValueError, match="razorpay_payment_id must be unique"):
+        load_frames(orders, settlements)
+
+
+def test_invalid_amount_is_rejected_before_matching():
+    orders = pd.read_csv(DATA / "orders.csv", dtype=str, keep_default_na=False)
+    settlements = pd.read_csv(DATA / "settlements.csv", dtype=str, keep_default_na=False)
+    orders.loc[0, "amount"] = "not-a-number"
+
+    with pytest.raises(ValueError, match="invalid amount or date"):
+        reconcile(load_frames(orders, settlements), config=MatchConfig(), use_llm=False)
+
+
+def test_q_and_a_uses_deterministic_answers(result):
+    answer = result.qa().ask("What's the total tax deducted this batch?")
+
+    assert answer.source == "rules"
+    assert f"{result.money['tax']:,.2f}" in answer.answer
+
+
+def test_simple_column_aliases_are_accepted():
+    orders = pd.read_csv(DATA / "orders.csv", dtype=str, keep_default_na=False)
+    settlements = pd.read_csv(DATA / "settlements.csv", dtype=str, keep_default_na=False)
+    orders = orders.rename(columns={
+        "order_id": "order_no",
+        "amount": "order_amount",
+        "razorpay_payment_id": "payment_id",
+    })
+    settlements = settlements.rename(columns={
+        "settlement_id": "settlementid",
+        "payment_id": "razorpay_payment_id",
+        "gross_amount": "gross",
+        "net_amount": "net",
+    })
+
+    batch = load_frames(orders, settlements)
+
+    assert "order_id" in batch.orders
+    assert "payment_id" in batch.settlements
+    assert "net_amount" in batch.settlements
+
+
+def test_invalid_match_threshold_is_rejected():
+    with pytest.raises(ValueError, match="amount_tolerance"):
+        MatchConfig(amount_tolerance=1.5)

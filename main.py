@@ -28,7 +28,13 @@ def main() -> int:
     p.add_argument("--settlements", type=Path, default=DATA_DIR / "settlements.csv")
     p.add_argument("--ground-truth", type=Path, default=DATA_DIR / "ground_truth.csv")
     p.add_argument("--amount-tolerance", type=float, default=MatchConfig.amount_tolerance)
-    p.add_argument("--date-window", type=int, default=MatchConfig.date_window_days)
+    p.add_argument("--date-window", type=int, default=MatchConfig.date_window_days,
+                   help="base maximum delay, before the delayed-payout allowance")
+    p.add_argument("--delayed-settlement-days", type=int,
+                   default=MatchConfig.delayed_settlement_days)
+    p.add_argument("--amount-mismatch-tolerance", type=float,
+                   default=MatchConfig.amount_mismatch_tolerance,
+                   help="flag amount differences above this fraction; 0.01 means 1 percent")
     p.add_argument("--accept-confidence", type=float, default=MatchConfig.accept_confidence)
     p.add_argument("--no-llm", action="store_true", help="force the deterministic reasoner")
     p.add_argument("--ask", action="append", default=[], help="question to answer after the report")
@@ -40,12 +46,16 @@ def main() -> int:
     config = MatchConfig(
         amount_tolerance=args.amount_tolerance,
         date_window_days=args.date_window,
+        delayed_settlement_days=args.delayed_settlement_days,
+        amount_mismatch_tolerance=args.amount_mismatch_tolerance,
         accept_confidence=args.accept_confidence,
     )
     result = reconcile_paths(
         args.orders, args.settlements, args.ground_truth, config=config, use_llm=not args.no_llm
     )
 
+    for warning in result.batch.warnings:
+        print(f"WARNING: {warning}")
     print(render_text_report(result.metrics, result.breakdown, result.money))
 
     args.out.mkdir(parents=True, exist_ok=True)

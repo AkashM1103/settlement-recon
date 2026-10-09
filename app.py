@@ -29,9 +29,10 @@ def _read_csv(file) -> pd.DataFrame:
 
 
 def _load_inputs(orders_file, settlements_file):
+    if bool(orders_file) != bool(settlements_file):
+        raise ValueError("Upload both orders.csv and settlements.csv, or leave both empty to use the sample batch.")
     if orders_file and settlements_file:
-        truth = None
-        return load_frames(_read_csv(orders_file), _read_csv(settlements_file), truth)
+        return load_frames(_read_csv(orders_file), _read_csv(settlements_file))
     return load_batch(DATA_DIR / "orders.csv", DATA_DIR / "settlements.csv", DATA_DIR / "ground_truth.csv")
 
 
@@ -42,34 +43,44 @@ with st.sidebar:
     st.caption("Leave empty to use the bundled sample batch (with ground truth).")
 
     st.header("Thresholds")
-    amount_tolerance = st.slider("Amount tolerance (±%)", 1, 20, 5) / 100
-    date_window = st.slider("Date window (± days)", 1, 10, 3)
+    amount_tolerance = st.slider("Candidate amount tolerance (%)", 1, 20, 5) / 100
+    date_window = st.slider("Base settlement delay (days)", 1, 10, 3)
+    delayed_days = st.slider("Extra allowance for delayed payouts (days)", 0, 30, 7)
+    mismatch_tolerance = st.slider("Flag amount difference over (%)", 0.1, 10.0, 1.0, 0.1) / 100
     accept_conf = st.slider("Accept confidence", 0.5, 0.99, 0.80, 0.01)
 
     llm_ready = LLMClient().available
-    use_llm = st.toggle("Use the LLM for reasoning + Q&A", value=llm_ready, disabled=not llm_ready)
+    use_llm = st.toggle("Use LLM for fuzzy matching", value=llm_ready, disabled=not llm_ready)
     st.caption(
         "GROQ_API_KEY detected." if llm_ready
         else "No GROQ_API_KEY - running the deterministic reasoner."
     )
-    run = st.button("Run reconciliation", type="primary", use_container_width=True)
+    run = st.button("Run reconciliation", type="primary", width="stretch")
 
 if run or "result" not in st.session_state:
-    batch = _load_inputs(orders_file, settlements_file)
-    with st.spinner("Reconciling batch..."):
-        st.session_state.result = reconcile(
-            batch,
-            config=MatchConfig(
-                amount_tolerance=amount_tolerance,
-                date_window_days=date_window,
-                accept_confidence=accept_conf,
-            ),
-            use_llm=use_llm,
-        )
-        st.session_state.qa = st.session_state.result.qa()
-        st.session_state.chat = []
+    try:
+        batch = _load_inputs(orders_file, settlements_file)
+        with st.spinner("Reconciling batch..."):
+            st.session_state.result = reconcile(
+                batch,
+                config=MatchConfig(
+                    amount_tolerance=amount_tolerance,
+                    date_window_days=date_window,
+                    delayed_settlement_days=delayed_days,
+                    amount_mismatch_tolerance=mismatch_tolerance,
+                    accept_confidence=accept_conf,
+                ),
+                use_llm=use_llm,
+            )
+            st.session_state.qa = st.session_state.result.qa()
+            st.session_state.chat = []
+    except ValueError as error:
+        st.error(str(error))
+        st.stop()
 
 result = st.session_state.result
+for warning in result.batch.warnings:
+    st.warning(warning)
 metrics = result.metrics
 
 c1, c2, c3, c4, c5 = st.columns(5)
@@ -87,9 +98,9 @@ tabs = st.tabs(["Data", "Reconciliation", "Exceptions", "Q&A"])
 
 with tabs[0]:
     st.subheader("Orders")
-    st.dataframe(result.batch.orders, use_container_width=True, height=260)
+    st.dataframe(result.batch.orders, width="stretch", height=260)
     st.subheader("Settlements")
-    st.dataframe(result.batch.settlements, use_container_width=True, height=260)
+    st.dataframe(result.batch.settlements, width="stretch", height=260)
 
 with tabs[1]:
     money = result.money
@@ -103,29 +114,29 @@ with tabs[1]:
         default=sorted(result.matches["match_status"].unique()),
     )
     view = result.matches[result.matches["match_status"].isin(status_filter)]
-    st.dataframe(view, use_container_width=True, height=420)
+    st.dataframe(view, width="stretch", height=420)
     st.download_button("Download reconciliation.csv", result.matches.to_csv(index=False),
                        "reconciliation.csv", "text/csv")
 
 with tabs[2]:
     st.subheader("Exception breakdown")
-    st.dataframe(result.breakdown, use_container_width=True)
+    st.dataframe(result.breakdown, width="stretch")
     st.subheader("Every exception, with reasoning")
     exc = result.matches[result.matches["exception_reason"].notna()]
     st.dataframe(
         exc[["settlement_id", "order_id", "exception_reason", "confidence", "reason",
              "gross_amount", "order_amount", "amount_delta", "settlement_lag_days"]],
-        use_container_width=True,
+        width="stretch",
         height=320,
     )
     st.subheader("Orders with no settlement")
-    st.dataframe(result.outcome.unsettled_orders, use_container_width=True)
+    st.dataframe(result.outcome.unsettled_orders, width="stretch")
 
 with tabs[3]:
     st.caption("Answers are computed over the reconciled records and cite the record IDs used.")
     cols = st.columns(3)
     for i, question in enumerate(SAMPLE_QUESTIONS):
-        if cols[i % 3].button(question, use_container_width=True):
+        if cols[i % 3].button(question, width="stretch"):
             st.session_state.pending_question = question
     typed = st.chat_input("Ask about fees, tax, net payout, refunds, exceptions...")
     question = typed or st.session_state.pop("pending_question", None)

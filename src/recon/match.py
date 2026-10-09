@@ -7,7 +7,7 @@ from dataclasses import dataclass, asdict
 
 import pandas as pd
 
-from .ingest import Batch
+from .ingest import Batch, validate_batch_ids
 from .reasoner import Reasoner, build_reasoner
 
 MATCHED = "matched"
@@ -23,6 +23,18 @@ class MatchConfig:
     accept_confidence: float = 0.80  # verdict confidence needed to auto-accept
     amount_mismatch_tolerance: float = 0.01  # >1% gross vs order amount => flagged
     delayed_settlement_days: int = 7
+
+    def __post_init__(self) -> None:
+        if not 0 <= self.amount_tolerance < 1:
+            raise ValueError("amount_tolerance must be between 0 and 1")
+        if self.top_k < 1:
+            raise ValueError("top_k must be at least 1")
+        if self.date_window_days < 0 or self.delayed_settlement_days < 0:
+            raise ValueError("date windows cannot be negative")
+        if not 0 <= self.accept_confidence <= 1:
+            raise ValueError("accept_confidence must be between 0 and 1")
+        if not 0 <= self.amount_mismatch_tolerance <= 1:
+            raise ValueError("amount_mismatch_tolerance must be between 0 and 1")
 
 
 @dataclass
@@ -98,6 +110,7 @@ def _exception_for(settlement: pd.Series, order: pd.Series | None, config: Match
 def run_matching(batch: Batch, config: MatchConfig | None = None,
                  reasoner: Reasoner | None = None, use_llm: bool = True) -> MatchOutcome:
     config = config or MatchConfig()
+    validate_batch_ids(batch)
     reasoner = reasoner or build_reasoner(use_llm=use_llm)
     started = time.perf_counter()
 

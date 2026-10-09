@@ -1,30 +1,14 @@
-"""Grounded Q&A over the reconciled batch.
-
-Answers are computed from the reconciled dataframe (never free-form recall): a
-retrieval step selects the relevant records, deterministic aggregates are
-computed in pandas, and the LLM only phrases the answer over that evidence. Every
-answer carries the record IDs it used, which is the audit trail.
-"""
+"""Answer simple questions from the reconciled rows and report their evidence."""
 
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import dataclass, field
 
 import pandas as pd
 
-from .llm import LLMClient
 from .match import MATCHED, MatchOutcome
 from .report import Metrics, exception_breakdown, financial_summary
-
-SYSTEM_PROMPT = (
-    "You are a settlement reconciliation analyst answering questions about ONE batch. "
-    "Answer only from the EVIDENCE block; never invent numbers. Amounts are INR. "
-    "Be concise (1-3 sentences), quote exact figures, and end with the record IDs you "
-    "relied on, written plainly (e.g. 'Records: STL5571, STL5572') with no bracketed "
-    "source markers. If the evidence does not contain the answer, say so plainly."
-)
 
 EXCEPTION_WORDS = {
     "orphan": "orphan_settlement",
@@ -36,7 +20,6 @@ EXCEPTION_WORDS = {
     "late": "date_drift",
     "dummy": "no_order",
     "test": "no_order",
-    "no matching order": "no_order",
     "unsettled": "unsettled_order",
     "ambiguous": "ambiguous_candidates",
 }
@@ -54,12 +37,10 @@ class Answer:
 
 
 class ReconQA:
-    def __init__(self, outcome: MatchOutcome, metrics: Metrics, client: LLMClient | None = None,
-                 max_records: int = 25) -> None:
+    def __init__(self, outcome: MatchOutcome, metrics: Metrics, max_records: int = 25) -> None:
         self.outcome = outcome
         self.metrics = metrics
         self.matches = outcome.matches
-        self.client = client or LLMClient()
         self.max_records = max_records
 
     # ---------------- retrieval ------------------------------------------
@@ -76,6 +57,9 @@ class ReconQA:
             ]
             if len(hit):
                 return hit
+
+        if "no matching order" in q or "without an order" in q:
+            return m[m["order_id"].isna()]
 
         for word, reason in EXCEPTION_WORDS.items():
             if word in q:
@@ -126,18 +110,8 @@ class ReconQA:
     def ask(self, question: str) -> Answer:
         evidence = self.build_evidence(question)
         ids = self._ids(evidence)
-        if self.client.available:
-            try:
-                text = self.client.complete(
-                    SYSTEM_PROMPT,
-                    f"QUESTION: {question}\n\nEVIDENCE:\n{json.dumps(evidence, default=str, indent=2)}",
-                ).strip()
-                return Answer(question, text, ids, evidence, source="llm")
-            except Exception as exc:  # noqa: BLE001 - fall back to deterministic answer
-                fallback = self._rule_answer(question, evidence)
-                return Answer(question, f"{fallback} (llm unavailable: {type(exc).__name__})",
-                              ids, evidence, source="rules")
-        return Answer(question, self._rule_answer(question, evidence), ids, evidence, source="rules")
+        answer = self._rule_answer(question, evidence)
+        return Answer(question, answer, ids, evidence, source="rules")
 
     def _rule_answer(self, question: str, evidence: dict) -> str:
         q = question.lower()
